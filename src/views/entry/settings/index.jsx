@@ -30,7 +30,7 @@ import Card from "components/card/Card";
 // Custom components
 import MiniStatistics from "components/card/MiniStatistics";
 import IconBox from "components/icons/IconBox";
-import React, { useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import {
   MdAddTask,
   MdAccessTime,
@@ -41,16 +41,16 @@ import {
   MdDevices,
 } from "react-icons/md";
 import { Divider } from "@chakra-ui/react";
-
 import { useLocation } from "react-router-dom";
 import { Context } from "contexts/index";
 import { UPDATE } from "contexts/actionTypes";
-import { ADD_FRUIT } from "contexts/actionTypes";
 
 import { CiRuler } from "react-icons/ci";
 import { GiCartwheel } from "react-icons/gi";
 import Summary from "./components/Summary";
 import SettingElement from "./components/SettingElement";
+import { CHART_TYPE, UPDATE_VIEW_OPTIONS } from "contexts/actionTypes";
+import RefLevelInput from "./components/RefLevelInput";
 
 export default function SettingsView(props) {
   const { ...rest } = props;
@@ -59,40 +59,95 @@ export default function SettingsView(props) {
   const textColor = useColorModeValue("secondaryGray.900", "white");
   const brandColor = useColorModeValue("brand.500", "white");
   const boxBg = useColorModeValue("secondaryGray.300", "whiteAlpha.100");
-
   const location = useLocation();
-
-  const unixToYyMmDd = (unixTimestamp) => {
-    const date = new Date(unixTimestamp * 1000); // convert Unix timestamp to milliseconds
-    const year = date.getFullYear().toString().slice(2, 4).padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const day = date.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  const { ipcRenderer } = window.require("electron");
+  const isMountedRef = useRef(false);
 
   // context API
   const {
     state: {
       record: { MetaData, _csv },
+      viewOptions: vo,
     },
     dispatch,
   } = useContext(Context);
 
-  useEffect(() => {
-    // const { ipcRenderer } = window.require("electron");
-
-    console.log("MetaData", MetaData);
-    console.log("_csv", _csv);
-    console.log("overview rendered");
-    return () => {};
-  }, [location]);
-
   const text_secondColor = useColorModeValue("secondaryGray.700", "white");
   const hoverColor = useColorModeValue("gray.200", "gray.700");
 
-  // onClick={() => props.onClickRow(row)}
-  // transition="all .2s ease-in-out"
-  // gap="20px"
+  const [settingData, setsettingData] = useState({});
+
+  const handleRadio = () => {
+    const ret = {
+      ...vo,
+      enableApexChart: !vo.enableApexChart,
+    };
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: {
+        viewOptions: ret,
+      },
+    });
+    ipcRenderer.send("rtoe_update_settings", ret); // 설정 요청
+  };
+
+  const handleAggLevel = (v) => {
+    const ret = {
+      ...vo,
+      aggregation: Number(v),
+    };
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: {
+        viewOptions: ret,
+      },
+    });
+
+    ipcRenderer.send("rtoe_update_settings", ret); // 설정 요청
+  };
+
+  const handleRefLevel = (type, v, idx) => {
+    let ret = {};
+    if (type === "Smooth" || type === "HL" || type === "Straightness") {
+      console.log("special", ret);
+      ret = {
+        ...vo,
+        range: vo.range,
+      };
+      const cmd = `referenceLevel.${type}[${idx}] = ${v}`;
+      eval(cmd);
+    } else {
+      ret = {
+        ...vo,
+        referenceLevel: { ...vo.referenceLevel, [type]: Number(v) },
+      };
+    }
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: {
+        viewOptions: ret,
+      },
+    });
+    console.log("type", type);
+    console.log("v", v);
+    ipcRenderer.send("rtoe_update_settings", ret); // 설정 요청
+  };
+
+  useEffect(() => {
+    ipcRenderer.send("rtoe_fetch_settings"); // 설정 요청
+    ipcRenderer.on("etor_fetch_settings", handleFetchSettings); // 설정 받았을 때 할 일
+
+    return () => {};
+  }, []);
+
+  // 설정 받아와서 저장
+  const handleFetchSettings = (event, data) => {
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: { viewOptions: data },
+    });
+  };
+
   return (
     <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
       <Flex align="center" w="100%" px="15px" my="10px">
@@ -119,13 +174,17 @@ export default function SettingsView(props) {
           title="차트 그리기 방법"
           description="ApexChart를 사용하는 경우, 성능 저하가 있을 수 있습니다."
           controls={
-            <RadioGroup me="40px">
+            <RadioGroup
+              me="40px"
+              value={vo.enableApexChart}
+              onChange={() => handleRadio()}
+            >
               <Stack direction="row">
-                <Radio value="1" size="lg">
+                <Radio value={false} size="lg">
                   uPlot
                 </Radio>
                 <Spacer />
-                <Radio value="2" size="lg">
+                <Radio value={true} size="lg">
                   ApexChart
                 </Radio>
               </Stack>
@@ -141,7 +200,15 @@ export default function SettingsView(props) {
           기준으로, 분석 및 출력 시 0.05m * ( Aggregation Level ) 간격의 데이터를
           출력합니다."
           controls={
-            <NumberInput max={50} min={1} me="40px" width="100px">
+            <NumberInput
+              max={50}
+              min={1}
+              me="40px"
+              width="100px"
+              onChange={(v) => handleAggLevel(v)}
+              defaultValue={vo.aggregation}
+              value={vo.aggregation}
+            >
               <NumberInputField />
               <NumberInputStepper>
                 <NumberIncrementStepper />
@@ -172,55 +239,175 @@ export default function SettingsView(props) {
         mb="20px"
         overflowX={{ sm: "hidden", lg: "hidden" }}
       >
-        {/* <Flex px="25px" justify="space-between" align="center">
-        <Text css={{ transform: "rotate(0.04deg)" }} color={textColor} fontSize="20px" fontWeight="700" lineHeight="100%">
-          새로 열어 분석하기
-        </Text>
-      </Flex> */}
-        {/* <SimpleGrid columns={{ base: 2, md: 2, xl: 2 }} gap="20px" mb="20px"> */}
         <SettingElement
           title="주행노면 좌우차"
-          description="기본값 : < ±4mm, 단위 : ±( Reference Level )mm"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < ±4mm"
+          controls={
+            <>
+              <Spacer />
+              <Spacer />
+              <Text>±</Text>
+              <Input
+                size="sm"
+                w="5%"
+                type="number"
+                value={vo.referenceLevel.LRDiff}
+                onChange={(e) => handleRefLevel("LRDiff", e.target.value)}
+              />
+              <Text me="40px">mm</Text>
+            </>
+          }
         />
         <Divider size="50%" />
         <SettingElement
           title="주행노면 평면성"
-          description="기본값 : < 3mm / 3m, 단위 : ±( Reference Level )mm / ( Reference Level )m"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < 3mm / 3m"
+          controls={
+            <>
+              <Spacer />
+              <Text>±</Text>
+              <Input
+                type="number"
+                size="sm"
+                value={vo.referenceLevel.Smooth[0]}
+                onChange={(e) => handleRefLevel("Smooth", e.target.value, 0)}
+                w="5%"
+              />
+              <Text>mm / </Text>
+
+              <Input
+                size="sm"
+                type="number"
+                value={vo.referenceLevel.Smooth[1]}
+                onChange={(e) => handleRefLevel("Smooth", e.target.value, 1)}
+                w="5%"
+              />
+              <Text me="40px">m</Text>
+            </>
+          }
         />
         <Divider size="50%" />
         <SettingElement
           title="주행노면 고저"
-          description="기본값 : < 3mm / 3m, 단위 : ±( Reference Level )mm / ( Reference Level )m"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < 3mm / 3m"
+          controls={
+            <>
+              <Spacer />
+              <Text>±</Text>
+              <Input
+                type="number"
+                size="sm"
+                value={vo.referenceLevel.HL[0]}
+                onChange={(e) => handleRefLevel("HL", e.target.value, 0)}
+                w="5%"
+              />
+              <Text>mm / </Text>
+
+              <Input
+                type="number"
+                size="sm"
+                value={vo.referenceLevel.HL[1]}
+                onChange={(e) => handleRefLevel("HL", e.target.value, 1)}
+                w="5%"
+              />
+              <Text me="40px">m</Text>
+            </>
+          }
         />
         <Divider size="50%" />
 
         <SettingElement
           title="평탄성"
-          description="기본값 : < ∑= 1.2mm, 단위 : < ∑= ( Reference Level )mm"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < ∑= 1.2mm"
+          controls={
+            <>
+              <Spacer />
+              <Spacer />
+              <Text>{"< ∑="}</Text>
+              <Input
+                size="sm"
+                w="5%"
+                type="number"
+                value={vo.referenceLevel.Flatness}
+                onChange={(e) => handleRefLevel("Flatness", e.target.value)}
+              />
+              <Text me="40px">mm</Text>
+            </>
+          }
         />
         <Divider size="50%" />
 
         <SettingElement
           title="안내레일 내측거리"
-          description="기본값 : < 10mm, 단위 : < ( Reference Level )mm"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < 10mm"
+          controls={
+            <>
+              <Spacer />
+              <Spacer />
+              <Text>{"< "}</Text>
+              <Input
+                size="sm"
+                w="5%"
+                type="number"
+                value={vo.referenceLevel.InnerDist}
+                onChange={(e) => handleRefLevel("InnerDist", e.target.value)}
+              />
+              <Text me="40px">mm</Text>
+            </>
+          }
         />
         <Divider size="50%" />
 
         <SettingElement
           title="직진도"
-          description="기본값 : < 3mm / 3m, 단위 : ±( Reference Level )mm / ( Reference Level )m"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < 3mm / 3m"
+          controls={
+            <>
+              <Spacer />
+              <Text>±</Text>
+              <Input
+                type="number"
+                size="sm"
+                value={vo.referenceLevel.Straightness[0]}
+                onChange={(e) =>
+                  handleRefLevel("Straightness", e.target.value, 0)
+                }
+                w="5%"
+              />
+              <Text>mm / </Text>
+
+              <Input
+                size="sm"
+                type="number"
+                value={vo.referenceLevel.Straightness[1]}
+                onChange={(e) =>
+                  handleRefLevel("Straightness", e.target.value, 1)
+                }
+                w="5%"
+              />
+              <Text me="40px">m</Text>
+            </>
+          }
         />
         <Divider size="50%" />
         <SettingElement
           title="연결부 단차"
-          description="기본값 : < 0.5mm, 단위 : < ( Reference Level )mm"
-          controls={<Input placeholder={props.placeholder} w="10%" mx="40px" />}
+          description="기본값 : < 0.5mm"
+          controls={
+            <>
+              <Spacer />
+              <Spacer />
+              <Text>{"< "}</Text>
+              <Input
+                size="sm"
+                w="5%"
+                type="number"
+                value={vo.referenceLevel.gap}
+                onChange={(e) => handleRefLevel("gap", e.target.value)}
+              />
+              <Text me="40px">mm</Text>
+            </>
+          }
         />
       </Card>
 

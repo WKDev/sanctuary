@@ -1,7 +1,6 @@
 import React from "react";
 import { createContext, useReducer, useEffect } from "react";
 import {
-  ADD_FRUIT,
   UPDATE,
   CHART_TYPE,
   UPDATE_METADATA,
@@ -18,17 +17,33 @@ const initialState = {
   viewOptions: {
     enableApexChart: false,
     referenceLevel: {
-      LRDiff: 4, // lrdiff
-      Smooth: [3, 3], // 평면성
-      HL: [3, 3], // 고저
-      Flatness: 1.2, // 평탄성
-      InnerDist: 10, // 안내레일내측거리
-      Straightness: [3, 3], // 직진도
-      gap: 0.5,
+      LRDiff: 0, // lrdiff
+      Smooth: [0, 0], // 평면성
+      HL: [0, 0], // 고저
+      Flatness: 0, // 평탄성
+      InnerDist: 0, // 안내레일내측거리
+      Straightness: [0, 0], // 직진도
+      gap: 0,
     },
-    aggregation: 1,
-    range: [0, 1],
+    aggregation: 0,
+    range: [0, 0],
+    globalRange: [0, 0],
   },
+
+  // viewOptions: {
+  //   enableApexChart: false,
+  //   referenceLevel: {
+  //     LRDiff: 4, // lrdiff
+  //     Smooth: [3, 3], // 평면성
+  //     HL: [3, 3], // 고저
+  //     Flatness: 1.2, // 평탄성
+  //     InnerDist: 10, // 안내레일내측거리
+  //     Straightness: [3, 3], // 직진도
+  //     gap: 0.5,
+  //   },
+  //   aggregation: 1,
+  //   range: [0, 1],
+  // },
 };
 
 // create context
@@ -77,6 +92,7 @@ const reducer = (state = initialState, action) => {
         ...state,
         viewOptions: action.payload.viewOptions,
       };
+
     default:
       return state;
   }
@@ -88,10 +104,10 @@ function Provider({ children }) {
   const value = { state, dispatch };
 
   useEffect(() => {
-    console.log("state", state);
+    console.log("viewOptions", state.viewOptions);
 
     return () => {};
-  }, [state]);
+  }, [state.viewOptions]);
 
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

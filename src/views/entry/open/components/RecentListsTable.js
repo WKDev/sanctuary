@@ -90,33 +90,33 @@ export default function RecentListsTable(props) {
   const isMountedRef = useRef(false);
   // const isMountedRef_csv = useRef(false);
 
-  useEffect(() => {
-    if (csvData.length > 0 && Object.keys(metadata).length > 0) {
-      console.log("ending rendering...!");
-    }
-    return () => {};
-  }, [metadata, csvData]);
+  // useEffect(() => {
+  //   if (csvData.length > 0 && Object.keys(metadata).length > 0) {
+  //     console.log("ending rendering...!");
+  //   }
+  //   return () => {};
+  // }, [metadata, csvData]);
 
-  useEffect(() => {
-    if (!isMountedRef.current) {
-      // 컴포넌트 초기 마운트 시
-      isMountedRef.current = true;
-    } else {
-      // 컴포넌트 업데이트시
-      if (csvData.length > 0 && Object.keys(metadata).length > 0) {
-        console.log("navigate and sending data to analysis layout");
-        console.log("metadata", metadata);
-        // console.log('csvData', csvData);
+  // useEffect(() => {
+  //   if (!isMountedRef.current) {
+  //     // 컴포넌트 초기 마운트 시
+  //     isMountedRef.current = true;
+  //   } else {
+  //     // 컴포넌트 업데이트시
+  //     if (csvData.length > 0 && Object.keys(metadata).length > 0) {
+  //       console.log("navigate and sending data to analysis layout");
+  //       console.log("metadata", metadata);
+  //       // console.log('csvData', csvData);
 
-        // 정보들 contextapi에 저장 후 이동
-        dispatch({
-          type: UPDATE,
-          payload: { MetaData: metadata, _csv: csvData },
-        });
-      }
-      return () => {};
-    }
-  }, [metadata, csvData]);
+  //       // 정보들 contextapi에 저장 후 이동
+  //       dispatch({
+  //         type: UPDATE,
+  //         payload: { MetaData: metadata, _csv: csvData },
+  //       });
+  //     }
+  //     return () => {};
+  //   }
+  // }, [metadata, csvData]);
 
   return (
     <Card

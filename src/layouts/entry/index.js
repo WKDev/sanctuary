@@ -50,6 +50,8 @@ export default function EntryLayout(props) {
     // 왼쪽 사이드바 누른 결과가 종료라면, 모달 열기
     if (getActiveRoute(routesEntrypoint) === "종료") {
       onOpen();
+      console.log("window.location.href", window.location.href);
+      return () => {};
     }
   }, [location]);
 
@@ -201,7 +203,7 @@ export default function EntryLayout(props) {
             isCentered
             onClose={() => {
               onClose();
-              navigate(-1);
+              navigate("/");
             }}
           >
             <ModalOverlay />
@@ -209,7 +211,8 @@ export default function EntryLayout(props) {
               <ModalHeader>종료</ModalHeader>
               <ModalCloseButton
                 onClick={() => {
-                  navigate(-1);
+                  onClose();
+                  navigate("/");
                 }}
               />
               <ModalBody>
@@ -223,7 +226,7 @@ export default function EntryLayout(props) {
                   mr={3}
                   onClick={() => {
                     onClose();
-                    navigate(-1);
+                    navigate("/");
                   }}
                 >
                   취소

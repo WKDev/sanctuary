@@ -39,14 +39,6 @@ import {
 } from "react-icons/md";
 import { Divider } from "@chakra-ui/react";
 
-import { useLocation } from "react-router-dom";
-import { Context } from "contexts/index";
-import { UPDATE } from "contexts/actionTypes";
-import { ADD_FRUIT } from "contexts/actionTypes";
-
-import { CiRuler } from "react-icons/ci";
-import { GiCartwheel } from "react-icons/gi";
-
 const SettingElement = (props) => {
   const hoverColor = useColorModeValue("gray.200", "gray.700");
   const textColor = useColorModeValue("secondaryGray.900", "white");

@@ -41,45 +41,55 @@ const CommonAnalysisTable = ({ refLevel, type }) => {
   return (
     <Card mb="20px" pa="5px" mt="20px">
       <TableContainer>
-        <Table variant="simple" size="sm">
+        <Table
+          variant="simple"
+          size="sm"
+          borderColor="red.200"
+          colorScheme="blackAlpha"
+        >
           <Tbody>
             <Tr>
-              <Th>Sensor</Th>
+              <Th fontSize="l">Sensor</Th>
 
-              <Td>
+              <Td fontSize="l">
                 {type === "level"
                   ? MetaData.level_sensor
                   : type === "enc"
                   ? MetaData.encoder_sensor
                   : ""}
               </Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
 
-              <Th>Line</Th>
-              <Td>{MetaData.line}</Td>
-              <Td></Td>
+              <Th fontSize="l">Line</Th>
+              <Td fontSize="l">{MetaData.line}</Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
             </Tr>
             <Tr>
-              <Th>Reference Level</Th>
-              <Td>{refLevel}</Td>
-              <Td></Td>
+              <Th fontSize="l">Reference Level</Th>
+              <Td fontSize="l">{refLevel}</Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
             </Tr>
             <Tr>
-              <Th>Date, Time</Th>
-              <Td>{formatTimestamp(MetaData.time)}</Td>
-              <Td></Td>
-              <Td></Td>
+              <Th fontSize="l">Date, Time</Th>
+              <Td fontSize="l">{formatTimestamp(MetaData.time)}</Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
             </Tr>
             <Tr>
-              <Th>Tester Name</Th>
-              <Td>{MetaData.testername}</Td>
-              <Td></Td>
-              <Td></Td>
+              <Th fontSize="l">Tester Name</Th>
+              <Td fontSize="l">{MetaData.testername}</Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
             </Tr>
             <Tr>
-              <Th>Avg. Velocity</Th>
-              <Td>{MetaData.avg_velocity}</Td>
-              <Td></Td>
-              <Td></Td>
+              <Th fontSize="l">Avg. Velocity</Th>
+              <Td fontSize="l">{MetaData.avg_velocity}</Td>
+              <Td fontSize="l"></Td>
+              <Td fontSize="l"></Td>
             </Tr>
           </Tbody>
         </Table>

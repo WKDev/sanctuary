@@ -1,9 +1,9 @@
-import React from 'react';
-import uPlot from 'uplot';
-import UplotReact from 'uplot-react';
-import 'uplot/dist/uPlot.min.css';
+import React from "react";
+import uPlot from "uplot";
+import UplotReact from "uplot-react";
+import "uplot/dist/uPlot.min.css";
 
-const UPlot = ({ x, y, input, ylabel, concat, refLevel }) => {
+const UPlot = ({ x, y, input, ylabel, refLevel }) => {
   // const options = {
   //   chart: {
   //     id: 'basic-line',
@@ -108,36 +108,38 @@ const UPlot = ({ x, y, input, ylabel, concat, refLevel }) => {
     height: 350,
     series: [
       {
-        label: 'Distance[m]',
+        label: "Distance[m]",
       },
       {
-        label: 'Measurement[mm]',
+        label: "Measurement[mm]",
         points: { show: false },
-        stroke: 'blue',
+        stroke: "blue",
         // fill: 'blue',
       },
       {
-        label: 'Ref+',
+        label: "Ref+",
         points: { show: false },
-        stroke: 'red',
+        stroke: "red",
         // fill: 'blue',
       },
       {
         // label: 'Ref-',
         points: { show: false },
-        stroke: 'red',
+        stroke: "red",
         // fill: 'blue',
       },
     ],
     scales: { x: { time: false } },
     // plugins: [dummyPlugin()],
   };
-  const refPositive = new Array(concat[0].length).fill(refLevel);
-  const refNegative = new Array(concat[0].length).fill(-refLevel);
+  const refPositive = new Array(x.length).fill(refLevel);
+  const refNegative = new Array(x.length).fill(-refLevel);
+
+  const concat = [x, y];
 
   const concatWithRef = [...concat, refPositive, refNegative];
 
-  console.log('concatWithRef', concatWithRef);
+  // console.log('concatWithRef', concatWithRef);
 
   return (
     <UplotReact

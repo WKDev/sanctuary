@@ -7,7 +7,7 @@ export function ItemContent(props) {
   const textColor = useColorModeValue("navy.700", "white");
   return (
     <>
-      <Flex
+      {/* <Flex
         justify='center'
         align='center'
         borderRadius='16px'
@@ -18,21 +18,25 @@ export function ItemContent(props) {
         me='14px'
         bg='linear-gradient(135deg, #868CFF 0%, #4318FF 100%)'>
         <Icon as={MdUpgrade} color='white' w={8} h={14} />
-      </Flex>
-      <Flex flexDirection='column'>
+      </Flex> */}
+      <Flex flexDirection="column">
         <Text
-          mb='5px'
-          fontWeight='bold'
+          mb="5px"
+          fontWeight="bold"
           color={textColor}
-          fontSize={{ base: "md", md: "md" }}>
-          New Update: {props.info}
+          fontSize={{ base: "md", md: "md" }}
+          css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
+        >
+          {props.title}
         </Text>
-        <Flex alignItems='center'>
+        <Flex alignItems="center">
           <Text
             fontSize={{ base: "sm", md: "sm" }}
-            lineHeight='100%'
-            color={textColor}>
-            A new update for your downloaded item is available!
+            lineHeight="100%"
+            color={textColor}
+            css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
+          >
+            {props.content}
           </Text>
         </Flex>
       </Flex>

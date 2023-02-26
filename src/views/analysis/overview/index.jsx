@@ -10,12 +10,13 @@ import {
   SimpleGrid,
   useColorModeValue,
   Text,
-} from '@chakra-ui/react';
-import Card from 'components/card/Card';
+  MenuDivider,
+} from "@chakra-ui/react";
+import Card from "components/card/Card";
 // Custom components
-import MiniStatistics from 'components/card/MiniStatistics';
-import IconBox from 'components/icons/IconBox';
-import React, { useEffect, useContext } from 'react';
+import MiniStatistics from "components/card/MiniStatistics";
+import IconBox from "components/icons/IconBox";
+import React, { useEffect, useContext } from "react";
 import {
   MdAddTask,
   MdAccessTime,
@@ -24,33 +25,34 @@ import {
   MdOutlineTimer,
   MdFilePresent,
   MdDevices,
-} from 'react-icons/md';
-import { Divider } from '@chakra-ui/react';
+} from "react-icons/md";
+import { Divider } from "@chakra-ui/react";
 
-import { useLocation } from 'react-router-dom';
-import { Context } from 'contexts/index';
-import { UPDATE } from 'contexts/actionTypes';
-import { ADD_FRUIT } from 'contexts/actionTypes';
+import { useLocation } from "react-router-dom";
+import { Context } from "contexts/index";
+import { UPDATE } from "contexts/actionTypes";
 
-import { CiRuler } from 'react-icons/ci';
-import { GiCartwheel } from 'react-icons/gi';
-import Summary from './components/Summary';
-
+import { CiRuler } from "react-icons/ci";
+import { GiCartwheel } from "react-icons/gi";
+import Summary from "./components/Summary";
+import { CHART_TYPE, UPDATE_VIEW_OPTIONS } from "contexts/actionTypes";
 export default function Overview(props) {
+  const { ipcRenderer } = window.require("electron");
+
   const { ...rest } = props;
 
   // Chakra Color Mode
-  const textColor = useColorModeValue('secondaryGray.900', 'white');
-  const brandColor = useColorModeValue('brand.500', 'white');
-  const boxBg = useColorModeValue('secondaryGray.300', 'whiteAlpha.100');
+  const textColor = useColorModeValue("secondaryGray.900", "white");
+  const brandColor = useColorModeValue("brand.500", "white");
+  const boxBg = useColorModeValue("secondaryGray.300", "whiteAlpha.100");
 
   const location = useLocation();
 
   const unixToYyMmDd = (unixTimestamp) => {
     const date = new Date(unixTimestamp * 1000); // convert Unix timestamp to milliseconds
-    const year = date.getFullYear().toString().slice(2, 4).padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(2, 4).padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -58,25 +60,47 @@ export default function Overview(props) {
   const {
     state: {
       record: { MetaData, _csv },
+      viewOptions: vo,
     },
     dispatch,
   } = useContext(Context);
 
+  // useEffect(() => {
+  //   // const { ipcRenderer } = window.require("electron");
+
+  //   console.log("MetaData", MetaData);
+  //   console.log("_csv", _csv);
+  //   console.log("overview rendered");
+  //   return () => {};
+  // }, [location]);
+
   useEffect(() => {
-    // const { ipcRenderer } = window.require("electron");
+    ipcRenderer.send("rtoe_fetch_settings"); // 설정 요청
+    ipcRenderer.on("etor_fetch_settings", handleFetchSettings); // 설정 받았을 때 할 일
 
-    console.log('MetaData', MetaData);
-    console.log('_csv', _csv);
-    console.log('overview rendered');
     return () => {};
-  }, [location]);
+  }, []);
 
-  const recInterval = () => {};
+  // 설정 받아와서 저장
+  const handleFetchSettings = (event, data) => {
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: { viewOptions: { ...data, range: [0, _csv.length] } },
+    });
+
+    // console.log("overview_handlefetchsettings", vo);
+  };
 
   return (
-    <Box pt={{ base: '130px', md: '80px', xl: '80px' }}>
+    <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
       <Flex align="center" w="100%" px="15px" py="10px">
-        <Text me="auto" color={textColor} fontSize="xl" fontWeight="700" lineHeight="100%">
+        <Text
+          me="auto"
+          color={textColor}
+          fontSize="xl"
+          fontWeight="700"
+          lineHeight="100%"
+        >
           장비 기본정보
         </Text>
       </Flex>
@@ -88,7 +112,9 @@ export default function Overview(props) {
                 w="56px"
                 h="56px"
                 bg={boxBg}
-                icon={<Icon w="32px" h="32px" as={MdDevices} color={brandColor} />}
+                icon={
+                  <Icon w="32px" h="32px" as={MdDevices} color={brandColor} />
+                }
               />
             }
             name="장비 유형"
@@ -101,7 +127,14 @@ export default function Overview(props) {
                   w="56px"
                   h="56px"
                   bg={boxBg}
-                  icon={<Icon w="32px" h="32px" as={MdAccessTime} color={brandColor} />}
+                  icon={
+                    <Icon
+                      w="32px"
+                      h="32px"
+                      as={MdAccessTime}
+                      color={brandColor}
+                    />
+                  }
                 />
               </div>
             }
@@ -132,14 +165,21 @@ export default function Overview(props) {
               w="56px"
               h="56px"
               bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdOutlineTimer} color={brandColor} />}
+              icon={
+                <Icon
+                  w="32px"
+                  h="32px"
+                  as={MdOutlineTimer}
+                  color={brandColor}
+                />
+              }
             />
           }
           name="기록 주기 "
           value={
-            MetaData.recording_type === 'meter'
-              ? `${'sample /' + MetaData.recording_interval + 'm'}`
-              : `${'sample /' + MetaData.recording_interval + 'rev'}`
+            MetaData.recording_type === "meter"
+              ? `${"sample /" + MetaData.recording_interval + "m"}`
+              : `${"sample /" + MetaData.recording_interval + "rev"}`
           }
         />
 
@@ -149,7 +189,9 @@ export default function Overview(props) {
               w="56px"
               h="56px"
               bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdFilePresent} color={brandColor} />}
+              icon={
+                <Icon w="32px" h="32px" as={MdFilePresent} color={brandColor} />
+              }
             />
           }
           name="기록 수량"
@@ -175,7 +217,9 @@ export default function Overview(props) {
               w="56px"
               h="56px"
               bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={GiCartwheel} color={brandColor} />}
+              icon={
+                <Icon w="32px" h="32px" as={GiCartwheel} color={brandColor} />
+              }
             />
           }
           name="Encoder"
@@ -184,7 +228,13 @@ export default function Overview(props) {
       </SimpleGrid>
       <Divider />
       <Flex align="center" w="100%" px="15px" py="10px">
-        <Text me="auto" color={textColor} fontSize="xl" fontWeight="700" lineHeight="100%">
+        <Text
+          me="auto"
+          color={textColor}
+          fontSize="xl"
+          fontWeight="700"
+          lineHeight="100%"
+        >
           분석 내용 요약
         </Text>
       </Flex>
@@ -194,7 +244,7 @@ export default function Overview(props) {
             base: 4,
             md: 4,
             lg: 4,
-            '2xl': 4,
+            "2xl": 4,
           }}
           gap="20px"
           mb="20px"

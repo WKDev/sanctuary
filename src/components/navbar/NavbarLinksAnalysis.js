@@ -1,6 +1,6 @@
 // Chakra Imports
 import {
-  Avatar,
+  MenuDivider,
   Button,
   Flex,
   Icon,
@@ -25,6 +25,14 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   Divider,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
 } from "@chakra-ui/react";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";
@@ -42,17 +50,39 @@ import routes from "routes-analysis.js";
 import { ThemeEditor } from "./ThemeEditor";
 
 import { Context } from "contexts/index";
-import { UPDATE, ADD_FRUIT } from "contexts/actionTypes";
-import { useContext } from "react";
+import { UPDATE } from "contexts/actionTypes";
+import { useContext, useEffect } from "react";
+import { UPDATE_VIEW_OPTIONS } from "contexts/actionTypes";
+
+import { ItemContent } from "components/menu/ItemContent";
 
 export default function HeaderLinks(props) {
+  const { ipcRenderer } = window.require("electron");
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const {
     state: {
       record: { MetaData, _csv },
-      viewOptions: { aggregation, range, referenceLevel },
+      viewOptions: vo,
     },
     dispatch,
   } = useContext(Context);
+
+  useEffect(() => {
+    const ret = {
+      ...vo,
+      range: [0, _csv.length],
+      globalRange: [0, _csv.length],
+    };
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: {
+        viewOptions: ret,
+      },
+    });
+
+    return () => {};
+  }, []);
 
   const {
     variant,
@@ -77,13 +107,114 @@ export default function HeaderLinks(props) {
     "14px 17px 40px 4px rgba(112, 144, 176, 0.06)"
   );
 
-  const navigation = useNavigate();
+  const navigate = useNavigate();
 
   const borderButton = useColorModeValue("secondaryGray.500", "whiteAlpha.200");
   const inputText = useColorModeValue("primaryGray.900", "gray.100");
   const searchIconColor = useColorModeValue("gray.700", "white");
   const exportColor = useColorModeValue("brand.500", "white");
   const inputBg = useColorModeValue("secondaryGray.300", "navy.900");
+
+  const handleAggchange = (v) => {
+    // console.log("vo.range", vo.range);
+    // console.log("(_csv.length / vo.aggregation)", _csv.length / vo.aggregation);
+    // console.log("pos0", vo.range[0] / (_csv.length / vo.aggregation));
+
+    // console.log("pos1", vo.range[1] / (_csv.length / vo.aggregation));
+
+    if (v !== 0) {
+      const NewPos = [
+        ((vo.range[0] / (_csv.length / vo.aggregation)) * _csv.length) /
+          Number(v),
+        ((vo.range[1] / (_csv.length / vo.aggregation)) * _csv.length) /
+          Number(v),
+      ];
+
+      // console.log("NewPos", NewPos);
+
+      const ret = {
+        ...vo,
+        range: [NewPos[0], NewPos[1]],
+        aggregation: Number(v),
+      };
+
+      // console.log("ret fromhandleAggChange", ret);
+      dispatch({
+        type: UPDATE_VIEW_OPTIONS,
+        payload: {
+          viewOptions: ret,
+        },
+      });
+    }
+  };
+
+  const handleSlider = (v) => {
+    const result = v.map(Math.floor);
+
+    const ret = {
+      ...vo,
+      range: result,
+      globalRange: result,
+    };
+    console.log("v.globalRange", vo.globalRange);
+
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: {
+        viewOptions: ret,
+      },
+    });
+  };
+
+  const handleSliderEnd = (v) => {
+    // 차트 범위 업데이트 하기
+
+    const result = v.map(Math.floor);
+
+    const ret = {
+      ...vo,
+      range: result,
+    };
+
+    // transformedX[vo.globalRange[1] - 1]
+
+    dispatch({
+      type: UPDATE_VIEW_OPTIONS,
+      payload: {
+        viewOptions: ret,
+      },
+    });
+  };
+
+  const handleWsCommunicator = () => {
+    //sending ws comm..
+    // 28일까지 마무리하기
+  };
+  const transformedX = _csv.map((obj) => {
+    const trv =
+      (obj.enc / MetaData.enc_ppr) * 3.1415926 * MetaData.wheel_diameter;
+    return trv;
+  });
+
+  const transformedY = _csv.map((obj) => {
+    return obj.level1;
+  });
+
+  const aggedX = transformedX.filter(
+    (element, index) => index % vo.aggregation === 0
+  );
+  const aggedY = transformedY.filter(
+    (element, index) => index % vo.aggregation === 0
+  );
+
+  // const filteredConcat = concat.map((innerArray) =>
+  //   innerArray.filter((element, index) => index % viewOptions.aggregation === 0)
+  // );
+
+  const slicedX = aggedX.slice(vo.range[0], vo.range[1]);
+  const slicedY = aggedY.slice(vo.range[0], vo.range[1]);
+
+  ////////////////////////////////////////
 
   return (
     <Flex
@@ -145,7 +276,14 @@ export default function HeaderLinks(props) {
         Aggregation
       </Text>
 
-      <NumberInput max={50} min={1} mx="20px" width="200px">
+      <NumberInput
+        max={50}
+        min={1}
+        mx="20px"
+        width="220px"
+        value={vo.aggregation}
+        onChange={(e) => handleAggchange(e)}
+      >
         <NumberInputField />
 
         <NumberInputStepper>
@@ -165,7 +303,19 @@ export default function HeaderLinks(props) {
         |
       </Text>
 
-      <RangeSlider mx="20px" aria-label={["min", "max"]} defaultValue={[0, 30]}>
+      <RangeSlider
+        mx="20px"
+        aria-label={["min", "max"]}
+        defaultValue={[vo.range[0], vo.range[1]]}
+        value={[vo.range[0], vo.range[1]]}
+        max={_csv.length / vo.aggregation}
+        onChange={(v) => {
+          handleSlider(v);
+        }}
+        onChangeEnd={(v) => {
+          handleSliderEnd(v);
+        }}
+      >
         <RangeSliderTrack>
           <RangeSliderFilledTrack />
         </RangeSliderTrack>
@@ -185,57 +335,188 @@ export default function HeaderLinks(props) {
       </Text>
 
       <SidebarResponsive routes={routes} />
-      {/* <Menu>
-				<MenuButton p="0px">
-					<Icon mt="6px" as={MdNotificationsNone} color={navbarIcon} w="18px" h="18px" me="10px" />
-				</MenuButton>
-				<MenuList
-					boxShadow={shadow}
-					p="20px"
-					borderRadius="20px"
-					bg={menuBg}
-					border="none"
-					mt="22px"
-					me={{ base: '30px', md: 'unset' }}
-					minW={{ base: 'unset', md: '400px', xl: '450px' }}
-					maxW={{ base: '360px', md: 'unset' }}>
-					<Flex jusitfy="space-between" w="100%" mb="20px">
-						<Text fontSize="md" fontWeight="600" color={textColor}>
-							Notifications
-						</Text>
-						<Text fontSize="sm" fontWeight="500" color={textColorBrand} ms="auto" cursor="pointer">
-							Mark all read
-						</Text>
-					</Flex>
-					<Flex flexDirection="column">
-						<MenuItem _hover={{ bg: 'none' }} _focus={{ bg: 'none' }} px="0" borderRadius="8px" mb="10px">
-							<ItemContent info="Horizon UI Dashboard PRO" aName="Alicia" />
-						</MenuItem>
-						<MenuItem _hover={{ bg: 'none' }} _focus={{ bg: 'none' }} px="0" borderRadius="8px" mb="10px">
-							<ItemContent info="Horizon Design System Free" aName="Josh Henry" />
-						</MenuItem>
-					</Flex>
-				</MenuList>
-			</Menu> */}
+      <Menu>
+        <MenuButton
+          as={Button}
+          leftIcon={<Icon as={MdSave} color={inputBg} w="24px" h="24px" />}
+          w="35%"
+          fontSize="md"
+          // bg={background || inputBg || exportColor}
+          bg={exportColor}
+          color={inputBg}
+          fontWeight="700"
+          _placeholder={{ color: "gray.400", fontSize: "12px" }}
+          borderRadius={borderRadius || "30px"}
+          css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
+          onClick={() => {
+            // navigation("/");
+            // onOpen();
+          }}
+        >
+          내보내기
+        </MenuButton>
+        <MenuList
+          boxShadow={shadow}
+          p="20px"
+          borderRadius="20px"
+          bg={menuBg}
+          border="none"
+          mt="22px"
+          me={{ base: "30px", md: "unset" }}
+          minW={{ base: "unset", md: "400px", xl: "450px" }}
+          maxW={{ base: "360px", md: "unset" }}
+        >
+          <Flex jusitfy="space-between" w="100%" mb="20px">
+            <Text
+              fontSize="lg"
+              fontWeight="900"
+              color={textColor}
+              css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
+            >
+              XLS 파일로 내보내기
+            </Text>
+          </Flex>
+          <Flex flexDirection="column">
+            <Text
+              fontSize="md"
+              fontWeight="600"
+              color={textColorBrand}
+              me="auto"
+              css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
+            >
+              보고서 출력 전, 다음의 내용을 모두 확인해주세요.
+            </Text>
+            <MenuDivider />
+            <MenuItem
+              _hover={{ bg: "none" }}
+              _focus={{ bg: "none" }}
+              px="0"
+              borderRadius="8px"
+              mb="10px"
+            >
+              <ItemContent
+                title={"Aggergation"}
+                content={`${vo.aggregation}, 기록 간격 : ${
+                  MetaData.recording_interval
+                } --> ${Number(
+                  vo.aggregation * MetaData.recording_interval
+                ).toFixed(2)} (m or rev)`}
+              />
+            </MenuItem>
+            <MenuDivider />
 
-      <Button
-        leftIcon={<Icon as={MdSave} color={inputBg} w="24px" h="24px" />}
-        w="35%"
-        fontSize="md"
-        // bg={background || inputBg || exportColor}
-        bg={exportColor}
-        color={inputBg}
-        fontWeight="700"
-        _placeholder={{ color: "gray.400", fontSize: "12px" }}
-        borderRadius={borderRadius || "30px"}
-        css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
-        onClick={() => {
-          navigation("/");
+            <MenuItem
+              _hover={{ bg: "none" }}
+              _focus={{ bg: "none" }}
+              px="0"
+              borderRadius="8px"
+              mb="10px"
+            >
+              <ItemContent
+                title={"시작지점"}
+                content={`${Number(transformedX[vo.globalRange[0]]).toFixed(
+                  3
+                )}m`}
+              />
+            </MenuItem>
+            <MenuDivider />
+            <MenuItem
+              _hover={{ bg: "none" }}
+              _focus={{ bg: "none" }}
+              px="0"
+              borderRadius="8px"
+              mb="10px"
+            >
+              <ItemContent
+                title={"종료 지점"}
+                // content={`${transformedX[vo.globalRange[1] - 1].toFixd(3)}m`}
+                content={`${Number(transformedX[vo.globalRange[1] - 1]).toFixed(
+                  3
+                )}m`}
+              />
+            </MenuItem>
+
+            <MenuDivider />
+            <MenuItem
+              _hover={{ bg: "none" }}
+              _focus={{ bg: "none" }}
+              px="0"
+              borderRadius="8px"
+              mb="10px"
+            >
+              <Button
+                leftIcon={
+                  <Icon as={MdSave} color={inputBg} w="24px" h="24px" />
+                }
+                mx="auto"
+                w="35%"
+                fontSize="md"
+                // bg={background || inputBg || exportColor}
+                bg={exportColor}
+                color={inputBg}
+                fontWeight="700"
+                _placeholder={{ color: "gray.400", fontSize: "12px" }}
+                borderRadius={borderRadius || "30px"}
+                css={{ fontFamily: "나눔스퀘어", transform: "rotate(0.04deg)" }}
+                onClick={() => handleWsCommunicator()}
+              >
+                내보내기
+              </Button>
+            </MenuItem>
+          </Flex>
+        </MenuList>
+      </Menu>
+
+      <Modal
+        isOpen={isOpen}
+        isCentered
+        onClose={() => {
+          onClose();
+          navigate(-1);
         }}
       >
-        내보내기
-      </Button>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>종료</ModalHeader>
+          <ModalCloseButton
+            onClick={() => {
+              onClose();
+              navigate(-1);
+            }}
+          />
+          <ModalBody>
+            {/* <Lorem count={2} /> */}
+            <div>계속하시겠습니까?</div>
+          </ModalBody>
 
+          <ModalFooter>
+            <Button
+              colorScheme="brand"
+              mr={3}
+              onClick={() => {
+                onClose();
+                navigate(-4);
+              }}
+            >
+              취소
+            </Button>
+            <Button
+              variant="outline"
+              bg="#f5f6f7"
+              _focus={{
+                boxShadow:
+                  "0 0 1px 2px rgba(88, 144, 255, .75), 0 1px 1px rgba(0, 0, 0, .15)",
+              }}
+              onClick={() => {
+                onClose();
+                window.close();
+              }}
+            >
+              종료하기
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
       <Menu>
         <MenuList
           boxShadow={shadow}

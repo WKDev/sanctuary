@@ -27,22 +27,6 @@ export default function AnalysisLayout(props) {
   const location = useLocation();
 
   useEffect(() => () => {}, [location]);
-  // useEffect(() => {
-  //   console.log('Analysis');
-
-  //   console.log('MetaData', MetaData);
-  //   console.log('_csv', _csv);
-
-  //   toast({
-  //     title: 'Account created.',
-  //     description: "We've created your account for you.",
-  //     status: 'success',
-  //     duration: 9000,
-  //     isClosable: true,
-  //   });
-
-  //   return () => {};
-  // }, []);
 
   const { ...rest } = props;
   // states and functions
